@@ -51,34 +51,34 @@ my $test_features = {
     'blog_U' => { 'Male' => 1 },
 };
 
-my $correct_ig = {
-    'blog_A' => '0.8980',
-    'blog_B' => '0.8980',
-    'blog_C' => '0.0010',
-    'blog_D' => '0.0105',
-    'blog_E' => '0.8980',
-    'blog_F' => '0.8980',
-    'blog_G' => '0.0009',
-    'blog_H' => '0.8980',
-    'blog_I' => '0.8980',
-    'blog_J' => '0.0000',
-    'blog_K' => '0.8980',
-    'blog_L' => '0.0000',
-    'blog_M' => '0.8980',
-    'blog_N' => '0.8980',
-    'blog_O' => '0.8980',
-    'blog_P' => '0.0000',
-    'blog_Q' => '0.8980',
-    'blog_R' => '0.8980',
-    'blog_S' => '0.8980',
-    'blog_T' => '0.0182',
-    'blog_U' => '0.8980',
-};
+my $correct_igr = {
+          'blog_A' => '0.9013',
+          'blog_B' => '0.9013',
+          'blog_C' => '0.0010',
+          'blog_D' => '0.0105',
+          'blog_E' => '0.9013',
+          'blog_F' => '0.9013',
+          'blog_G' => '0.0009',
+          'blog_H' => '0.9013',
+          'blog_I' => '0.9013',
+          'blog_J' => '0.0000',
+          'blog_K' => '0.9013',
+          'blog_L' => '0.0000',
+          'blog_M' => '0.9013',
+          'blog_N' => '0.9013',
+          'blog_O' => '0.9013',
+          'blog_P' => '0.0000',
+          'blog_Q' => '0.9013',
+          'blog_R' => '0.9013',
+          'blog_S' => '0.9013',
+          'blog_T' => '0.0182',
+          'blog_U' => '0.9013',
+        };
 
-my $ig = $fs->information_gain($test_features);
+my $igr = $fs->information_gain_ratio($test_features);
 
-for(keys %$ig){
-    $ig->{$_} = sprintf("%6.4f", $ig->{$_});
+for(keys %$igr){
+    $igr->{$_} = sprintf("%6.4f", $igr->{$_});
 }
 
-is_deeply( $ig, $correct_ig );
+is_deeply( $igr, $correct_igr );

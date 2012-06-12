@@ -96,7 +96,7 @@ my $correct_pmi = {
     'blog_U' => { 'Male' => '0.5441' }
 };
 
-my $pmi = $fs->calc_pairwise_mutual_information($test_features);
+my $pmi = $fs->pairwise_mutual_information($test_features);
 
 for my $f ( keys %$pmi ) {
     for my $c ( keys %{ $pmi->{$f} } ) {

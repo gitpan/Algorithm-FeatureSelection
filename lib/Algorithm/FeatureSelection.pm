@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use List::Util qw(sum);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 sub new {
     my $class = shift;
@@ -11,17 +11,22 @@ sub new {
     return $self;
 }
 
-sub calc_pmi {
+sub pmi {
     my $self = shift;
-    $self->calc_pairewise_mutual_information(@_);
+    $self->pairewise_mutual_information(@_);
 }
 
-sub calc_ig {
+sub ig {
     my $self = shift;
-    $self->calc_information_gain(@_);
+    $self->information_gain(@_);
 }
 
-sub calc_pairwise_mutual_information {
+sub igr {
+    my $self = shift;
+    $self->information_gain_ratio(@_);
+}
+
+sub pairwise_mutual_information {
     my $self     = shift;
     my $features = shift;
 
@@ -50,7 +55,7 @@ sub calc_pairwise_mutual_information {
     ## PMI(w, c) = log ( P( Xw = 1, C = c ) / P( Xw=1 )P( C=c ) )
     ##
     ##    c.f.  w = feature
-    ## 		    c = Class
+    ##          c = Class
     ##
     ## -----------------------------------------------------------------
 
@@ -84,7 +89,7 @@ sub calc_pairwise_mutual_information {
     return $PMI;
 }
 
-sub calc_information_gain {
+sub information_gain {
     my $self     = shift;
     my $features = shift;
 
@@ -112,8 +117,8 @@ sub calc_information_gain {
     ##
     ## IG(w) = H(C) - ( P(Xw = 1) H(C|Xw = 1) + P(Xw = 0) H(C|Xw = 0) )
     ##
-    ##    c.f. ：w = feature
-    ## 		     C = class
+    ##    c.f. w = feature
+    ##         C = class
     ##
     ## -----------------------------------------------------------------
 
@@ -136,7 +141,7 @@ sub calc_information_gain {
         my $p_class = $sum / $all_features_num;
         push @array, $p_class;
     }
-    my $entropy = $self->calc_entropy( \@array );
+    my $entropy = $self->entropy( \@array );
 
     while ( my ( $feature, $ref ) = each %$features ) {
 
@@ -151,7 +156,7 @@ sub calc_information_gain {
                 push @array, $p_class_feature;
             }
 
-            $on_entropy = $self->calc_entropy( \@array );
+            $on_entropy = $self->entropy( \@array ) || 0;
         }
 
         # H ( C | Xw = 0)
@@ -165,7 +170,7 @@ sub calc_information_gain {
                 push @array, $p_class_feature;
             }
 
-            $off_entropy = $self->calc_entropy( \@array );
+            $off_entropy = $self->entropy( \@array ) || 0;
         }
 
         # Information Gain
@@ -182,7 +187,22 @@ sub calc_information_gain {
     return $IG;
 }
 
-sub calc_entropy {
+sub information_gain_ratio {
+    my $self = shift;
+    my $data = shift;
+
+    my $SI = $self->split_information($data);
+    my $IG = $self->information_gain($data);
+    my $IGR;
+    for ( sort { $IG->{$b} <=> $IG->{$a} } keys %$IG ) {
+        if ( my $ratio = $IG->{$_} / $SI ) {
+            $IGR->{$_} = $ratio if $ratio > 0;
+        }
+    }
+    return $IGR;
+}
+
+sub entropy {
     my $self = shift;
     my $data = shift;
 
@@ -191,7 +211,8 @@ sub calc_entropy {
         @ratio = _ratio( [ values %$data ] );
     }
     elsif ( ref $data eq 'ARRAY' ) {
-        if ( sum(@$data) == 1 ) {
+        my $s = sum(@$data) || 0;
+        if ( $s == 1 ) {
             @ratio = @$data;
         }
         else {
@@ -201,10 +222,33 @@ sub calc_entropy {
 
     my $entropy;
     for my $p (@ratio) {
+        if ( $p <= 0 ) {
+            $p = 0.000000000000000000000001;
+        }
+
         $entropy += -$p * _log2($p);
     }
     return $entropy;
 
+}
+
+sub split_information {
+    my $self = shift;
+    my $data = shift;
+
+    my $all = int keys %$data;
+    my $s;
+    while ( my ( $w, $ref ) = each %$data ) {
+        for my $category ( keys %$ref ) {
+            $s->{$category}++;
+        }
+    }
+    my @array;
+    while ( my ( $category, $num ) = each %$s ) {
+        push @array, $num / $all;
+    }
+    my $SI = $self->entropy( \@array );
+    return $SI;
 }
 
 sub _ratio {
@@ -212,7 +256,13 @@ sub _ratio {
     my @ratio;
     my $sum = sum(@$arrayref);
     for (@$arrayref) {
-        push @ratio, $_ / $sum;
+        next if $_ <= 0;
+        eval { push @ratio, $_ / $sum; };
+        if ($@) {
+            use Data::Dumper;
+            print Dumper $arrayref;
+            die($@);
+        }
     }
     return @ratio;
 }
@@ -250,12 +300,12 @@ Algorithm::FeatureSelection -
   };
 
   # get pairwise-mutula-information
-  my $pmi = $fs->calc_pairwise_mutual_information($features);
-  my $pmi = $fs->calc_pmi($features); # same above
+  my $pmi = $fs->pairwise_mutual_information($features);
+  my $pmi = $fs->pmi($features); # same above
 
   # get information-gain 
-  my $ig = $fs->calc_information_gain($features);
-  my $ig = $fs->calc_ig($features); # same above
+  my $ig = $fs->information_gain($features);
+  my $ig = $fs->ig($features); # same above
 
 
 
@@ -268,7 +318,7 @@ that are used as well-known method of feature selection on text mining fields.
 
 =head2 new()
 
-=head2 calc_information_gain( $features )
+=head2 information_gain( $features )
 
   my $features = {
     feature_1 => {
@@ -286,11 +336,11 @@ that are used as well-known method of feature selection on text mining fields.
   my $fs = Algorithm::FeatureSelection->new();
   my $ig = $fs->information_gain($features);
 
-=head2 calc_ig( $features )
+=head2 ig( $features )
 
-  short name of calc_information_gain()
+short name of information_gain()
 
-=head2 calc_pairwise_mutual_information( $features )
+=head2 information_gain_ratio( $features )
 
   my $features = {
     feature_1 => {
@@ -306,15 +356,37 @@ that are used as well-known method of feature selection on text mining fields.
           .
   };
   my $fs = Algorithm::FeatureSelection->new();
-  my $pmi = $fs->calc_pairwise_mutual_information($features);
+  my $igr = $fs->information_gain_ratio($features);
 
-=head2 calc_pmi( $features )
+=head2 igr( $features )
 
-  short name of calc_pairwise_mutual_information()
+short name of information_gain_ratio()
 
-=head2 calc_entropy(HASH|ARRAY)
+=head2 pairwise_mutual_information( $features )
 
-  calcurate entropy. 
+  my $features = {
+    feature_1 => {
+        class_a => 10,
+        class_b => 2,
+    },
+    feature_2 => {
+        class_b => 11,
+        class_d => 32
+    },
+          .
+          .
+          .
+  };
+  my $fs = Algorithm::FeatureSelection->new();
+  my $pmi = $fs->pairwise_mutual_information($features);
+
+=head2 pmi( $features )
+
+short name of pairwise_mutual_information()
+
+=head2 entropy(HASH|ARRAY)
+
+calcurate entropy. 
 
 =head1 AUTHOR
 

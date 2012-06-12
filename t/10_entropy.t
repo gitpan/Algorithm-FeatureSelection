@@ -11,7 +11,7 @@ my $data = {
     red  => 10,
     blue => 10,
 };
-is( $fs->calc_entropy($data), 1 );
+is( $fs->entropy($data), 1 );
 
 # argument can be hash-ref data structure.
 $data = {
@@ -21,12 +21,12 @@ $data = {
     green  => 15,
     whiite => 10,
 };
-is( sprintf( "%6.4f", $fs->calc_entropy($data) ), 2.2016 );
+is( sprintf( "%6.4f", $fs->entropy($data) ), 2.2016 );
 
 # argument can be array-ref data structure.
 $data = [ 35, 20, 20, 15, 10 ];
-is( sprintf("%6.4f", $fs->calc_entropy($data)), 2.2016 );
+is( sprintf("%6.4f", $fs->entropy($data)), 2.2016 );
 
 # argument can be array data structure.
 $data = [ 0.35, 0.2, 0.2, 0.15, 0.1 ];
-is( sprintf("%6.4f", $fs->calc_entropy($data)), 2.2016 );
+is( sprintf("%6.4f", $fs->entropy($data)), 2.2016 );
